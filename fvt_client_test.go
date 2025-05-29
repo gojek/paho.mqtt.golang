@@ -24,6 +24,7 @@ import (
 	"fmt"
 	"runtime"
 	"strconv"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -1653,6 +1654,59 @@ getLoop:
 			continue
 		}
 	}
+
+	p.Disconnect(250)
+	s.Disconnect(250)
+}
+
+// Test_OverLengthTopic - there was an issue where an overlength topic would result in the topic leaking into the
+// message body when it was overlength.
+func Test_OverLengthTopic(t *testing.T) {
+	const baseTopic = "/test/overlength/"
+	validTopic := baseTopic + strings.Repeat("A", 65535-len(baseTopic))
+	overLenTopic := validTopic + "B"
+
+	choke := make(chan bool)
+
+	pops := NewClientOptions()
+	pops.AddBroker(FVTTCP)
+	pops.SetClientID("overlentopic-pub")
+	p := NewClient(pops)
+
+	sops := NewClientOptions()
+	sops.AddBroker(FVTTCP)
+	sops.SetClientID("overlentopic-sub")
+	var f MessageHandler = func(client Client, msg Message) {
+		// Too long to print each time!
+		// fmt.Printf("TOPIC: %s\n", msg.Topic())
+		//fmt.Printf("MSG: %s\n", msg.Payload())
+		if msg.Topic() != validTopic {
+			t.Fatalf("Message topic incorrect (expected %s, got %s)", validTopic, msg.Topic())
+		}
+		if string(msg.Payload()) != "oltopic payload" {
+			fmt.Println("Message payload incorrect", msg.Payload(), len("pubmsg payload"))
+			t.Fatalf("Message payload incorrect")
+		}
+		choke <- true
+	}
+	sops.SetDefaultPublishHandler(f)
+
+	s := NewClient(sops)
+	if token := s.Connect(); token.Wait() && token.Error() != nil {
+		t.Fatalf("Error on Client.Connect(): %v", token.Error())
+	}
+
+	if token := s.Subscribe(baseTopic+"#", 0, nil); token.Wait() && token.Error() != nil {
+		t.Fatalf("Error on Client.Subscribe(): %v", token.Error())
+	}
+
+	if token := p.Connect(); token.Wait() && token.Error() != nil {
+		t.Fatalf("Error on Client.Connect(): %v", token.Error())
+	}
+
+	text := "oltopic payload"
+	p.Publish(overLenTopic, 0, false, text)
+	wait(choke)
 
 	p.Disconnect(250)
 	s.Disconnect(250)

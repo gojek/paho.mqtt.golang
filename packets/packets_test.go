@@ -250,4 +250,13 @@ func TestEncoding(t *testing.T) {
 			t.Errorf("encodeLength(%d) did not return [0x%X], but [0x%X]", length, encoded, res)
 		}
 	}
+
+	// When encoding a string longer than 2^16 bytes, the result must not exceed the length of the 16 bit header
+	// (previously this was possible due to the use of uint16(len(field)) for the length and then writing the entirety of
+	// field.
+	overlengthStr := bytes.Repeat([]byte("A"), 65600)         // longer than 2^16
+	if res := encodeBytes(overlengthStr); len(res) != 65537 { // Two byte length so 65535 + 2 = 65537
+		t.Errorf("encodeBytes did not truncate overlength data (expected len 65538, received %d", len(res))
+	}
+
 }
