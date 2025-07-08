@@ -117,7 +117,7 @@ func Test_TLSConfig(t *testing.T) {
 }
 
 func Test_OnConnectionLost(t *testing.T) {
-	onconnlost := func(client Client, err error, logger clientLogger) {
+	onconnlost := func(client Client, err error) {
 		panic(err)
 	}
 	o := NewClientOptions().SetConnectionLostHandler(onconnlost)

@@ -27,7 +27,7 @@ import (
 
 func Test_newRouter(t *testing.T) {
 	testLogger := NewClientLogger("test-client", nil, nil, nil, nil)
-	router := newRouter(*testLogger)
+	router := newRouter(testLogger)
 	if router == nil {
 		t.Fatalf("router is nil")
 	}
@@ -38,7 +38,7 @@ func Test_newRouter(t *testing.T) {
 
 func Test_AddRoute(t *testing.T) {
 	testLogger := NewClientLogger("test-client", nil, nil, nil, nil)
-	router := newRouter(*testLogger)
+	router := newRouter(testLogger)
 	cb := func(client Client, msg Message) {
 	}
 	router.addRoute("/alpha", cb)
@@ -50,7 +50,7 @@ func Test_AddRoute(t *testing.T) {
 
 func Test_AddRoute_Wildcards(t *testing.T) {
 	testLogger := NewClientLogger("test-client", nil, nil, nil, nil)
-	router := newRouter(*testLogger)
+	router := newRouter(testLogger)
 	cb := func(client Client, msg Message) {
 	}
 	router.addRoute("#", cb)
@@ -63,7 +63,7 @@ func Test_AddRoute_Wildcards(t *testing.T) {
 
 func Test_DeleteRoute_Wildcards(t *testing.T) {
 	testLogger := NewClientLogger("test-client", nil, nil, nil, nil)
-	router := newRouter(*testLogger)
+	router := newRouter(testLogger)
 	cb := func(client Client, msg Message) {
 	}
 	router.addRoute("#", cb)
@@ -79,7 +79,7 @@ func Test_DeleteRoute_Wildcards(t *testing.T) {
 
 func Test_Match(t *testing.T) {
 	testLogger := NewClientLogger("test-client", nil, nil, nil, nil)
-	router := newRouter(*testLogger)
+	router := newRouter(testLogger)
 	router.addRoute("/alpha", nil)
 
 	if !router.routes.Front().Value.(*route).match("/alpha") {
@@ -301,7 +301,7 @@ func Test_MatchAndDispatch(t *testing.T) {
 	msgs := make(chan *packets.PublishPacket)
 
 	testLogger := NewClientLogger("test-client", nil, nil, nil, nil)
-	router := newRouter(*testLogger)
+	router := newRouter(testLogger)
 	router.addRoute("a", cb)
 
 	stopped := make(chan bool)
@@ -338,7 +338,7 @@ func Test_SharedSubscription_MatchAndDispatch(t *testing.T) {
 	msgs := make(chan *packets.PublishPacket)
 
 	testLogger := NewClientLogger("test-client", nil, nil, nil, nil)
-	router := newRouter(*testLogger)
+	router := newRouter(testLogger)
 	router.addRoute("$share/az1/a", cb)
 
 	stopped := make(chan bool)

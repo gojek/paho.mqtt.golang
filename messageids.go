@@ -36,7 +36,7 @@ type messageIds struct {
 
 	lastIssuedID uint16 // The most recently issued ID. Used so we cycle through ids rather than immediately reusing them (can make debugging easier)
 
-	logger clientLogger
+	logger ClientLogger
 }
 
 const (
@@ -62,7 +62,7 @@ func (mids *messageIds) cleanUp() {
 	}
 	mids.index = make(map[uint16]tokenCompletor)
 	mids.mu.Unlock()
-	mids.logger.DEBUG.Println(MID, "cleaned up")
+	mids.logger.Debug().Println(MID, "cleaned up")
 }
 
 // cleanUpSubscribe removes all SUBSCRIBE and UNSUBSCRIBE tokens (setting error)
@@ -80,7 +80,7 @@ func (mids *messageIds) cleanUpSubscribe() {
 		}
 	}
 	mids.mu.Unlock()
-	mids.logger.DEBUG.Println(MID, "cleaned up subs")
+	mids.logger.Debug().Println(MID, "cleaned up subs")
 }
 
 func (mids *messageIds) freeID(id uint16) {
@@ -139,7 +139,7 @@ func (mids *messageIds) getToken(id uint16) tokenCompletor {
 
 type DummyToken struct {
 	id     uint16
-	logger clientLogger
+	logger ClientLogger
 }
 
 // Wait implements the Token Wait method.
@@ -160,7 +160,7 @@ func (d *DummyToken) Done() <-chan struct{} {
 }
 
 func (d *DummyToken) flowComplete() {
-	d.logger.ERROR.Printf("A lookup for token %d returned nil\n", d.id)
+	d.logger.Error().Printf("A lookup for token %d returned nil\n", d.id)
 }
 
 func (d *DummyToken) Error() error {

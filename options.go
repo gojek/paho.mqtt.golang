@@ -43,7 +43,7 @@ type MessageHandler func(Client, Message)
 // executed upon an unintended disconnection from the MQTT broker.
 // Disconnects caused by calling Disconnect or ForceDisconnect will
 // not cause an OnConnectionLost callback to execute.
-type ConnectionLostHandler func(Client, error, clientLogger)
+type ConnectionLostHandler func(Client, error)
 
 // OnConnectHandler is a callback that is called when the client
 // state changes from unconnected/disconnected to connected. Both
@@ -105,10 +105,7 @@ type ClientOptions struct {
 	Dialer                  *net.Dialer
 	CustomOpenConnectionFn  OpenConnectionFunc
 	AutoAckDisabled         bool
-	ErrorLogger             Logger
-	CriticalLogger          Logger
-	WarnLogger              Logger
-	DebugLogger             Logger
+	Logger                  ClientLogger
 }
 
 // NewClientOptions will create a new ClientClientOptions type with some
@@ -154,10 +151,7 @@ func NewClientOptions() *ClientOptions {
 		Dialer:                  &net.Dialer{Timeout: 30 * time.Second},
 		CustomOpenConnectionFn:  nil,
 		AutoAckDisabled:         false,
-		ErrorLogger:             NOOPLogger{},
-		CriticalLogger:          NOOPLogger{},
-		WarnLogger:              NOOPLogger{},
-		DebugLogger:             NOOPLogger{},
+		Logger:                  NewClientLogger("", ERROR, CRITICAL, WARN, DEBUG),
 	}
 	return o
 }
@@ -461,35 +455,7 @@ func (o *ClientOptions) SetCustomOpenConnectionFn(customOpenConnectionFn OpenCon
 // SetAutoAckDisabled enables or disables the Automated Acking of Messages received by the handler.
 //
 //	By default it is set to false. Setting it to true will disable the auto-ack globally.
-func (o *ClientOptions) SetAutoAckDisabled(autoAckDisabled bool) *ClientOptions {
-	o.AutoAckDisabled = autoAckDisabled
-	return o
-}
-
-// SetErrorLogger sets the Logger to be used for ERROR level messages.
-// If not set then the default NOOPLogger will be used.
-func (o *ClientOptions) SetErrorLogger(logger Logger) *ClientOptions {
-	o.ErrorLogger = logger
-	return o
-}
-
-// SetCriticalLogger sets the logger to be used for CRITICAL level messages.
-// If not set then the default NOOPLogger will be used.
-func (o *ClientOptions) SetCriticalLogger(logger Logger) *ClientOptions {
-	o.CriticalLogger = logger
-	return o
-}
-
-// SetWarnLogger sets the logger to be used for WARN level messages.
-// If not set then the default NOOPLogger will be used.
-func (o *ClientOptions) SetWarnLogger(logger Logger) *ClientOptions {
-	o.WarnLogger = logger
-	return o
-}
-
-// SetDebugLogger sets the logger to be used for DEBUG level messages.
-// If not set then the default NOOPLogger will be used.
-func (o *ClientOptions) SetDebugLogger(logger Logger) *ClientOptions {
-	o.DebugLogger = logger
+func (o *ClientOptions) SetLogger(logger ClientLogger) *ClientOptions {
+	o.Logger = logger
 	return o
 }

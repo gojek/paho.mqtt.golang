@@ -1,101 +1,76 @@
 package mqtt
 
-// clientLogger provides a structured way to log messages for different client actions.
+// ClientLogger provides a structured way to log messages for different client actions.
 // It contains loggers for ERROR, CRITICAL, WARN, and DEBUG levels, each associated with a specific client ID.
-type clientLogger struct {
-	ERROR    clientErrorLogger
-	CRITICAL clientCriticalLogger
-	WARN     clientWarnLogger
-	DEBUG    clientDebugLogger
+// ClientLogger is an interface for structured client loggers.
+type ClientLogger interface {
+	Error() Logger
+	Critical() Logger
+	Warn() Logger
+	Debug() Logger
 }
 
-// clientErrorLogger is a wrapper around a Logger that prefixes log messages with the client ID.
-// It implements the Logger interface, allowing it to be used interchangeably with other loggers.
-type clientErrorLogger struct {
+// DefaultClientLogger implements ClientLogger.
+type DefaultClientLogger struct {
+	clientID       string
+	errorLogger    Logger
+	criticalLogger Logger
+	warnLogger     Logger
+	debugLogger    Logger
+}
+
+func (l *DefaultClientLogger) Error() Logger {
+	return l.errorLogger
+}
+
+func (l *DefaultClientLogger) Critical() Logger {
+	return l.criticalLogger
+}
+
+func (l *DefaultClientLogger) Warn() Logger {
+	return l.warnLogger
+}
+
+func (l *DefaultClientLogger) Debug() Logger {
+	return l.debugLogger
+}
+
+// prefixLogger wraps a Logger to prefix messages with clientID.
+type prefixLogger struct {
 	clientID string
 	logger   Logger
 }
 
-func (cel *clientErrorLogger) Println(v ...interface{}) {
-	v = append([]interface{}{"[" + cel.clientID + "]"}, v...)
-	cel.logger.Println(v...)
+func (pl *prefixLogger) Println(v ...interface{}) {
+	v = append([]interface{}{"[" + pl.clientID + "]"}, v...)
+	pl.logger.Println(v...)
 }
 
-func (cel *clientErrorLogger) Printf(format string, v ...interface{}) {
-	format = "[" + cel.clientID + "] " + format
-	cel.logger.Printf(format, v...)
+func (pl *prefixLogger) Printf(format string, v ...interface{}) {
+	format = "[" + pl.clientID + "] " + format
+	pl.logger.Printf(format, v...)
 }
 
-// clientCriticalLogger is a wrapper around a Logger that prefixes critical log messages with the client ID.
-// It implements the Logger interface, allowing it to be used interchangeably with other loggers.
-type clientCriticalLogger struct {
-	clientID string
-	logger   Logger
-}
-
-func (ccl *clientCriticalLogger) Println(v ...interface{}) {
-	v = append([]interface{}{"[" + ccl.clientID + "]"}, v...)
-	ccl.logger.Println(v...)
-}
-
-func (ccl *clientCriticalLogger) Printf(format string, v ...interface{}) {
-	format = "[" + ccl.clientID + "] " + format
-	ccl.logger.Printf(format, v...)
-}
-
-// clientWarnLogger is a wrapper around a Logger that prefixes warning log messages with the client ID.
-// It implements the Logger interface, allowing it to be used interchangeably with other loggers.
-type clientWarnLogger struct {
-	clientID string
-	logger   Logger
-}
-
-func (cwl *clientWarnLogger) Println(v ...interface{}) {
-	v = append([]interface{}{"[" + cwl.clientID + "]"}, v...)
-	cwl.logger.Println(v...)
-}
-
-func (cwl *clientWarnLogger) Printf(format string, v ...interface{}) {
-	format = "[" + cwl.clientID + "] " + format
-	cwl.logger.Printf(format, v...)
-}
-
-// clientDebugLogger is a wrapper around a Logger that prefixes debug log messages with the client ID.
-// It implements the Logger interface, allowing it to be used interchangeably with other loggers.
-type clientDebugLogger struct {
-	clientID string
-	logger   Logger
-}
-
-func (cdl *clientDebugLogger) Println(v ...interface{}) {
-	v = append([]interface{}{"[" + cdl.clientID + "]"}, v...)
-	cdl.logger.Println(v...)
-}
-
-func (cdl *clientDebugLogger) Printf(format string, v ...interface{}) {
-	format = "[" + cdl.clientID + "] " + format
-	cdl.logger.Printf(format, v...)
-}
-
-// NewClientLogger creates a new clientLogger with the provided clientID and loggers for different levels.
+// NewClientLogger creates a new DefaultClientLogger with the provided clientID and loggers for different levels.
 // If any of the loggers are nil, they will default to NOOPLogger.
-func NewClientLogger(clientID string, errorLogger, criticalLogger, warnLogger, debugLogger Logger) *clientLogger {
+func NewClientLogger(clientID string, errorLogger, criticalLogger, warnLogger, debugLogger Logger) ClientLogger {
 	if errorLogger == nil {
-		errorLogger = NOOPLogger{}
+		errorLogger = ERROR
 	}
 	if criticalLogger == nil {
-		criticalLogger = NOOPLogger{}
+		criticalLogger = CRITICAL
 	}
 	if warnLogger == nil {
-		warnLogger = NOOPLogger{}
+		warnLogger = WARN
 	}
 	if debugLogger == nil {
-		debugLogger = NOOPLogger{}
+		debugLogger = DEBUG
 	}
-	return &clientLogger{
-		ERROR:    clientErrorLogger{clientID: clientID, logger: errorLogger},
-		CRITICAL: clientCriticalLogger{clientID: clientID, logger: criticalLogger},
-		WARN:     clientWarnLogger{clientID: clientID, logger: warnLogger},
-		DEBUG:    clientDebugLogger{clientID: clientID, logger: debugLogger},
+	return &DefaultClientLogger{
+		clientID:       clientID,
+		errorLogger:    &prefixLogger{clientID: clientID, logger: errorLogger},
+		criticalLogger: &prefixLogger{clientID: clientID, logger: criticalLogger},
+		warnLogger:     &prefixLogger{clientID: clientID, logger: warnLogger},
+		debugLogger:    &prefixLogger{clientID: clientID, logger: debugLogger},
 	}
 }

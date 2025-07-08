@@ -31,13 +31,23 @@ type MemoryStore struct {
 	sync.RWMutex
 	messages map[string]packets.ControlPacket
 	opened   bool
-	logger   clientLogger
+	logger   ClientLogger
 }
 
 // NewMemoryStore returns a pointer to a new instance of
 // MemoryStore, the instance is not initialized and ready to
 // use until Open() has been called on it.
-func NewMemoryStore(logger clientLogger) *MemoryStore {
+func NewMemoryStore() *MemoryStore {
+	store := &MemoryStore{
+		messages: make(map[string]packets.ControlPacket),
+		opened:   false,
+		logger:   NewClientLogger("", ERROR, CRITICAL, WARN, DEBUG),
+	}
+	return store
+}
+
+// NewMemoryStoreEx returns a pointer to a new instance of MemoryStore with a custom logger.
+func NewMemoryStoreEx(logger ClientLogger) *MemoryStore {
 	store := &MemoryStore{
 		messages: make(map[string]packets.ControlPacket),
 		opened:   false,
@@ -51,7 +61,7 @@ func (store *MemoryStore) Open() {
 	store.Lock()
 	defer store.Unlock()
 	store.opened = true
-	store.logger.DEBUG.Println(STR, "memorystore initialized")
+	store.logger.Debug().Println(STR, "memorystore initialized")
 }
 
 // Put takes a key and a pointer to a Message and stores the
@@ -60,7 +70,7 @@ func (store *MemoryStore) Put(key string, message packets.ControlPacket) {
 	store.Lock()
 	defer store.Unlock()
 	if !store.opened {
-		store.logger.ERROR.Println(STR, "Trying to use memory store, but not open")
+		store.logger.Error().Println(STR, "Trying to use memory store, but not open")
 		return
 	}
 	store.messages[key] = message
@@ -72,15 +82,15 @@ func (store *MemoryStore) Get(key string) packets.ControlPacket {
 	store.RLock()
 	defer store.RUnlock()
 	if !store.opened {
-		store.logger.ERROR.Println(STR, "Trying to use memory store, but not open")
+		store.logger.Error().Println(STR, "Trying to use memory store, but not open")
 		return nil
 	}
 	mid := mIDFromKey(key)
 	m := store.messages[key]
 	if m == nil {
-		store.logger.CRITICAL.Println(STR, "memorystore get: message", mid, "not found")
+		store.logger.Critical().Println(STR, "memorystore get: message", mid, "not found")
 	} else {
-		store.logger.DEBUG.Println(STR, "memorystore get: message", mid, "found")
+		store.logger.Debug().Println(STR, "memorystore get: message", mid, "found")
 	}
 	return m
 }
@@ -91,7 +101,7 @@ func (store *MemoryStore) All() []string {
 	store.RLock()
 	defer store.RUnlock()
 	if !store.opened {
-		store.logger.ERROR.Println(STR, "Trying to use memory store, but not open")
+		store.logger.Error().Println(STR, "Trying to use memory store, but not open")
 		return nil
 	}
 	var keys []string
@@ -107,16 +117,16 @@ func (store *MemoryStore) Del(key string) {
 	store.Lock()
 	defer store.Unlock()
 	if !store.opened {
-		store.logger.ERROR.Println(STR, "Trying to use memory store, but not open")
+		store.logger.Error().Println(STR, "Trying to use memory store, but not open")
 		return
 	}
 	mid := mIDFromKey(key)
 	m := store.messages[key]
 	if m == nil {
-		store.logger.WARN.Println(STR, "memorystore del: message", mid, "not found")
+		store.logger.Warn().Println(STR, "memorystore del: message", mid, "not found")
 	} else {
 		delete(store.messages, key)
-		store.logger.DEBUG.Println(STR, "memorystore del: message", mid, "was deleted")
+		store.logger.Debug().Println(STR, "memorystore del: message", mid, "was deleted")
 	}
 }
 
@@ -125,11 +135,11 @@ func (store *MemoryStore) Close() {
 	store.Lock()
 	defer store.Unlock()
 	if !store.opened {
-		store.logger.ERROR.Println(STR, "Trying to close memory store, but not open")
+		store.logger.Error().Println(STR, "Trying to close memory store, but not open")
 		return
 	}
 	store.opened = false
-	store.logger.DEBUG.Println(STR, "memorystore closed")
+	store.logger.Debug().Println(STR, "memorystore closed")
 }
 
 // Reset eliminates all persisted message data in the store.
@@ -137,8 +147,8 @@ func (store *MemoryStore) Reset() {
 	store.Lock()
 	defer store.Unlock()
 	if !store.opened {
-		store.logger.ERROR.Println(STR, "Trying to reset memory store, but not open")
+		store.logger.Error().Println(STR, "Trying to reset memory store, but not open")
 	}
 	store.messages = make(map[string]packets.ControlPacket)
-	store.logger.WARN.Println(STR, "memorystore wiped")
+	store.logger.Warn().Println(STR, "memorystore wiped")
 }
