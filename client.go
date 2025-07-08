@@ -114,9 +114,6 @@ type Client interface {
 	// OptionsReader returns a ClientOptionsReader which is a copy of the clientoptions
 	// in use by the client.
 	OptionsReader() ClientOptionsReader
-
-	// Logger returns a ClientLogger which is a copy of the client logger
-	Logger() ClientLogger
 }
 
 // client implements the Client interface
@@ -1208,10 +1205,6 @@ func (c *client) Unsubscribe(topics ...string) Token {
 	return token
 }
 
-func (c *client) Logger() ClientLogger {
-	return c.logger
-}
-
 // OptionsReader returns a ClientOptionsReader which is a copy of the clientoptions
 // in use by the client.
 func (c *client) OptionsReader() ClientOptionsReader {
@@ -1222,7 +1215,7 @@ func (c *client) OptionsReader() ClientOptionsReader {
 // DefaultConnectionLostHandler is a definition of a function that simply
 // reports to the Debug() log the reason for the client losing a connection.
 func DefaultConnectionLostHandler(client Client, reason error) {
-	client.Logger().Debug().Println("Connection lost:", reason.Error())
+	DEBUG.Println("Connection lost:", reason.Error())
 }
 
 // UpdateLastReceived - Will be called whenever a packet is received off the network
