@@ -163,17 +163,6 @@ func NewClient(o *ClientOptions) Client {
 		c.options.ProtocolVersion = 4
 		c.options.protocolVersionExplicit = false
 	}
-	if o.Logger == nil {
-		o.Logger = NewClientLogger(o.ClientID, ERROR, CRITICAL, WARN, DEBUG)
-	} else {
-		o.Logger = NewClientLogger(
-			o.ClientID,
-			o.Logger.Error(),
-			o.Logger.Critical(),
-			o.Logger.Warn(),
-			o.Logger.Debug(),
-		)
-	}
 	c.logger = o.Logger
 	if c.options.Store == nil {
 		c.options.Store = NewMemoryStore()

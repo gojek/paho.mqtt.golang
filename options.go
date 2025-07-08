@@ -456,6 +456,6 @@ func (o *ClientOptions) SetCustomOpenConnectionFn(customOpenConnectionFn OpenCon
 //
 //	By default it is set to false. Setting it to true will disable the auto-ack globally.
 func (o *ClientOptions) SetLogger(logger ClientLogger) *ClientOptions {
-	o.Logger = logger
+	o.Logger = NewClientLogger(o.ClientID, logger.Error(), logger.Critical(), logger.Warn(), logger.Debug())
 	return o
 }
