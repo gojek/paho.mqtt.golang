@@ -56,7 +56,7 @@ func NewOrderedMemoryStore() *OrderedMemoryStore {
 	store := &OrderedMemoryStore{
 		messages: make(map[string]storedMessage),
 		opened:   false,
-		logger: slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{
+		logger: slog.New(slog.NewJSONHandler(io.Discard, &slog.HandlerOptions{
 			Level: slog.LevelInfo,
 		})),
 	}

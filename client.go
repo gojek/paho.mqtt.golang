@@ -165,7 +165,7 @@ func NewClient(o *ClientOptions) Client {
 		c.options.ProtocolVersion = 4
 		c.options.protocolVersionExplicit = false
 	}
-	c.logger = slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
+	c.logger = slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
 		Level: o.LogVerbosity.toSlogLevel(),
 	})).With(slog.String("clientID", c.options.ClientID))
 	if c.options.Store == nil {
@@ -610,10 +610,10 @@ func (c *client) internalConnLost(whyConnLost error) {
 		reConnDone, err := disDone(true)
 		if err != nil {
 			ERROR.Println(CLI, "failure whilst reporting completion of disconnect", err)
-			c.logger.Error("failure whilst reporting completion of disconnect", slog.String("error", err.Error()), componentAttr(CLI))
+			c.logger.Error("failure whilst reporting completion of disconnect", slog.Any("error", err), componentAttr(CLI))
 		} else if reConnDone == nil { // Should never happen
 			ERROR.Println(CLI, "BUG BUG BUG reconnection function is nil", err)
-			c.logger.Error("BUG BUG BUG reconnection function is nil", slog.String("error", err.Error()), componentAttr(CLI))
+			c.logger.Error("BUG BUG BUG reconnection function is nil", slog.Any("error", err), componentAttr(CLI))
 		}
 
 		reconnect := err == nil && reConnDone != nil

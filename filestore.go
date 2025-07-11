@@ -54,7 +54,7 @@ func NewFileStore(directory string) *FileStore {
 	store := &FileStore{
 		directory: directory,
 		opened:    false,
-		logger: slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{
+		logger: slog.New(slog.NewJSONHandler(io.Discard, &slog.HandlerOptions{
 			Level: slog.LevelInfo,
 		})),
 	}

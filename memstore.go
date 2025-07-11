@@ -43,7 +43,7 @@ func NewMemoryStore() *MemoryStore {
 	store := &MemoryStore{
 		messages: make(map[string]packets.ControlPacket),
 		opened:   false,
-		logger: slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{
+		logger: slog.New(slog.NewJSONHandler(io.Discard, &slog.HandlerOptions{
 			Level: slog.LevelInfo,
 		})),
 	}

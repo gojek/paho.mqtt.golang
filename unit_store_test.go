@@ -29,7 +29,7 @@ import (
 var logger *slog.Logger
 
 func init() {
-	logger = slog.New(slog.NewTextHandler(io.Discard, nil))
+	logger = slog.New(slog.NewJSONHandler(io.Discard, nil))
 }
 
 func Test_fullpath(t *testing.T) {
