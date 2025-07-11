@@ -41,7 +41,7 @@ const closedNetConnErrorText = "use of closed network connection" // error strin
 //
 // Note that, for backward compatibility, ConnectMQTT() suppresses the actual connection error (compare to connectMQTT()).
 func ConnectMQTT(conn net.Conn, cm *packets.ConnectPacket, protocolVersion uint) (byte, bool) {
-	logger := slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{
+	logger := slog.New(slog.NewJSONHandler(io.Discard, &slog.HandlerOptions{
 		Level: slog.LevelInfo,
 	}))
 	rc, sessionPresent, _ := connectMQTT(conn, cm, protocolVersion, logger)
