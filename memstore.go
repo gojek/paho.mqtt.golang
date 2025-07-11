@@ -19,6 +19,8 @@
 package mqtt
 
 import (
+	"io"
+	"log/slog"
 	"sync"
 
 	"github.com/eclipse/paho.mqtt.golang/packets"
@@ -31,7 +33,7 @@ type MemoryStore struct {
 	sync.RWMutex
 	messages map[string]packets.ControlPacket
 	opened   bool
-	logger   ClientLogger
+	logger   *slog.Logger
 }
 
 // NewMemoryStore returns a pointer to a new instance of
@@ -41,17 +43,19 @@ func NewMemoryStore() *MemoryStore {
 	store := &MemoryStore{
 		messages: make(map[string]packets.ControlPacket),
 		opened:   false,
-		logger:   NewClientLogger("", ERROR, CRITICAL, WARN, DEBUG),
+		logger: slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{
+			Level: slog.LevelInfo,
+		})),
 	}
 	return store
 }
 
 // NewMemoryStoreEx returns a pointer to a new instance of MemoryStore with a custom logger.
-func NewMemoryStoreEx(logger ClientLogger) *MemoryStore {
+func NewMemoryStoreEx(logger slog.Logger) *MemoryStore {
 	store := &MemoryStore{
 		messages: make(map[string]packets.ControlPacket),
 		opened:   false,
-		logger:   logger,
+		logger:   &logger,
 	}
 	return store
 }
@@ -61,7 +65,8 @@ func (store *MemoryStore) Open() {
 	store.Lock()
 	defer store.Unlock()
 	store.opened = true
-	store.logger.Debug().Println(STR, "memorystore initialized")
+	DEBUG.Println(STR, "memorystore initialized")
+	store.logger.Debug("memorystore initialized", componentAttr(STR))
 }
 
 // Put takes a key and a pointer to a Message and stores the
@@ -70,7 +75,8 @@ func (store *MemoryStore) Put(key string, message packets.ControlPacket) {
 	store.Lock()
 	defer store.Unlock()
 	if !store.opened {
-		store.logger.Error().Println(STR, "Trying to use memory store, but not open")
+		ERROR.Println(STR, "Trying to use memory store, but not open")
+		store.logger.Error("Trying to use memory store, but not open", componentAttr(STR))
 		return
 	}
 	store.messages[key] = message
@@ -82,15 +88,18 @@ func (store *MemoryStore) Get(key string) packets.ControlPacket {
 	store.RLock()
 	defer store.RUnlock()
 	if !store.opened {
-		store.logger.Error().Println(STR, "Trying to use memory store, but not open")
+		ERROR.Println(STR, "Trying to use memory store, but not open")
+		store.logger.Error("Trying to use memory store, but not open", componentAttr(STR))
 		return nil
 	}
 	mid := mIDFromKey(key)
 	m := store.messages[key]
 	if m == nil {
-		store.logger.Critical().Println(STR, "memorystore get: message", mid, "not found")
+		CRITICAL.Println(STR, "memorystore get: message", mid, "not found")
+		store.logger.Error("memorystore get: message not found", slog.Uint64("messageID", uint64(mid)), componentAttr(STR))
 	} else {
-		store.logger.Debug().Println(STR, "memorystore get: message", mid, "found")
+		DEBUG.Println(STR, "memorystore get: message", mid, "found")
+		store.logger.Debug("memorystore get: message found", slog.Uint64("messageID", uint64(mid)), componentAttr(STR))
 	}
 	return m
 }
@@ -101,7 +110,8 @@ func (store *MemoryStore) All() []string {
 	store.RLock()
 	defer store.RUnlock()
 	if !store.opened {
-		store.logger.Error().Println(STR, "Trying to use memory store, but not open")
+		ERROR.Println(STR, "Trying to use memory store, but not open")
+		store.logger.Error("Trying to use memory store, but not open", componentAttr(STR))
 		return nil
 	}
 	var keys []string
@@ -117,16 +127,19 @@ func (store *MemoryStore) Del(key string) {
 	store.Lock()
 	defer store.Unlock()
 	if !store.opened {
-		store.logger.Error().Println(STR, "Trying to use memory store, but not open")
+		ERROR.Println(STR, "Trying to use memory store, but not open")
+		store.logger.Error("Trying to use memory store, but not open", componentAttr(STR))
 		return
 	}
 	mid := mIDFromKey(key)
 	m := store.messages[key]
 	if m == nil {
-		store.logger.Warn().Println(STR, "memorystore del: message", mid, "not found")
+		WARN.Println(STR, "memorystore del: message", mid, "not found")
+		store.logger.Warn("memorystore del: message not found", slog.Uint64("messageID", uint64(mid)), componentAttr(STR))
 	} else {
 		delete(store.messages, key)
-		store.logger.Debug().Println(STR, "memorystore del: message", mid, "was deleted")
+		DEBUG.Println(STR, "memorystore del: message", mid, "was deleted")
+		store.logger.Debug("memorystore del: message was deleted", slog.Uint64("messageID", uint64(mid)), componentAttr(STR))
 	}
 }
 
@@ -135,11 +148,13 @@ func (store *MemoryStore) Close() {
 	store.Lock()
 	defer store.Unlock()
 	if !store.opened {
-		store.logger.Error().Println(STR, "Trying to close memory store, but not open")
+		ERROR.Println(STR, "Trying to close memory store, but not open")
+		store.logger.Error("Trying to close memory store, but not open", componentAttr(STR))
 		return
 	}
 	store.opened = false
-	store.logger.Debug().Println(STR, "memorystore closed")
+	DEBUG.Println(STR, "memorystore closed")
+	store.logger.Debug("memorystore closed", componentAttr(STR))
 }
 
 // Reset eliminates all persisted message data in the store.
@@ -147,8 +162,10 @@ func (store *MemoryStore) Reset() {
 	store.Lock()
 	defer store.Unlock()
 	if !store.opened {
-		store.logger.Error().Println(STR, "Trying to reset memory store, but not open")
+		ERROR.Println(STR, "Trying to reset memory store, but not open")
+		store.logger.Error("Trying to reset memory store, but not open", componentAttr(STR))
 	}
 	store.messages = make(map[string]packets.ControlPacket)
-	store.logger.Warn().Println(STR, "memorystore wiped")
+	WARN.Println(STR, "memorystore wiped")
+	store.logger.Warn("memorystore wiped", componentAttr(STR))
 }

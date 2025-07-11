@@ -1453,7 +1453,7 @@ func Test_ResumeSubsWithReconnect(t *testing.T) {
 		sub.MessageID = c.(*client).getID(subToken)
 		subToken.messageID = sub.MessageID
 	}
-	c.(*client).logger.Debug().Println(CLI, sub.String())
+	DEBUG.Println(CLI, sub.String())
 
 	persistOutbound(c.(*client).persist, sub, c.(*client).logger)
 	// subToken := c.Subscribe(topic, qos, nil)

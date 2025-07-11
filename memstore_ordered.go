@@ -20,6 +20,8 @@
 package mqtt
 
 import (
+	"io"
+	"log/slog"
 	"sort"
 	"sync"
 	"time"
@@ -44,7 +46,7 @@ type OrderedMemoryStore struct {
 	sync.RWMutex
 	messages map[string]storedMessage
 	opened   bool
-	logger   ClientLogger
+	logger   *slog.Logger
 }
 
 // NewOrderedMemoryStore returns a pointer to a new instance of
@@ -54,7 +56,22 @@ func NewOrderedMemoryStore() *OrderedMemoryStore {
 	store := &OrderedMemoryStore{
 		messages: make(map[string]storedMessage),
 		opened:   false,
-		logger:   NewClientLogger("", ERROR, CRITICAL, WARN, DEBUG),
+		logger: slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{
+			Level: slog.LevelInfo,
+		})),
+	}
+	return store
+}
+
+// NewOrderedMemoryStoreEx returns a pointer to a new instance of
+// OrderedMemoryStore, the instance is not initialized and ready to
+// use until Open() has been called on it. The logger provided will be used
+// to log messages from the store.
+func NewOrderedMemoryStoreEx(logger slog.Logger) *OrderedMemoryStore {
+	store := &OrderedMemoryStore{
+		messages: make(map[string]storedMessage),
+		opened:   false,
+		logger:   &logger,
 	}
 	return store
 }
@@ -64,7 +81,8 @@ func (store *OrderedMemoryStore) Open() {
 	store.Lock()
 	defer store.Unlock()
 	store.opened = true
-	store.logger.Debug().Println(STR, "OrderedMemoryStore initialized")
+	DEBUG.Println(STR, "OrderedMemoryStore initialized")
+	store.logger.Debug("OrderedMemoryStore initialized", componentAttr(STR))
 }
 
 // Put takes a key and a pointer to a Message and stores the
@@ -73,7 +91,8 @@ func (store *OrderedMemoryStore) Put(key string, message packets.ControlPacket) 
 	store.Lock()
 	defer store.Unlock()
 	if !store.opened {
-		store.logger.Error().Println(STR, "Trying to use memory store, but not open")
+		ERROR.Println(STR, "Trying to use memory store, but not open")
+		store.logger.Error("Trying to use memory store, but not open", componentAttr(STR))
 		return
 	}
 	store.messages[key] = storedMessage{ts: time.Now(), msg: message}
@@ -85,15 +104,18 @@ func (store *OrderedMemoryStore) Get(key string) packets.ControlPacket {
 	store.RLock()
 	defer store.RUnlock()
 	if !store.opened {
-		store.logger.Error().Println(STR, "Trying to use memory store, but not open")
+		ERROR.Println(STR, "Trying to use memory store, but not open")
+		store.logger.Error("Trying to use memory store, but not open", componentAttr(STR))
 		return nil
 	}
 	mid := mIDFromKey(key)
 	m, ok := store.messages[key]
 	if !ok || m.msg == nil {
-		store.logger.Critical().Println(STR, "OrderedMemoryStore get: message", mid, "not found")
+		CRITICAL.Println(STR, "OrderedMemoryStore get: message", mid, "not found")
+		store.logger.Error("OrderedMemoryStore get: message not found", slog.Uint64("messageID", uint64(mid)), componentAttr(STR))
 	} else {
-		store.logger.Debug().Println(STR, "OrderedMemoryStore get: message", mid, "found")
+		DEBUG.Println(STR, "OrderedMemoryStore get: message", mid, "found")
+		store.logger.Debug("OrderedMemoryStore get: message found", slog.Uint64("messageID", uint64(mid)), componentAttr(STR))
 	}
 	return m.msg
 }
@@ -104,7 +126,8 @@ func (store *OrderedMemoryStore) All() []string {
 	store.RLock()
 	defer store.RUnlock()
 	if !store.opened {
-		store.logger.Error().Println(STR, "Trying to use memory store, but not open")
+		ERROR.Println(STR, "Trying to use memory store, but not open")
+		store.logger.Error("Trying to use memory store, but not open", componentAttr(STR))
 		return nil
 	}
 	type tsAndKey struct {
@@ -131,16 +154,19 @@ func (store *OrderedMemoryStore) Del(key string) {
 	store.Lock()
 	defer store.Unlock()
 	if !store.opened {
-		store.logger.Error().Println(STR, "Trying to use memory store, but not open")
+		ERROR.Println(STR, "Trying to use memory store, but not open")
+		store.logger.Error("Trying to use memory store, but not open", componentAttr(STR))
 		return
 	}
 	mid := mIDFromKey(key)
 	_, ok := store.messages[key]
 	if !ok {
-		store.logger.Warn().Println(STR, "OrderedMemoryStore del: message", mid, "not found")
+		WARN.Println(STR, "OrderedMemoryStore del: message", mid, "not found")
+		store.logger.Warn("OrderedMemoryStore del: message not found", slog.Uint64("messageID", uint64(mid)), componentAttr(STR))
 	} else {
 		delete(store.messages, key)
-		store.logger.Debug().Println(STR, "OrderedMemoryStore del: message", mid, "was deleted")
+		DEBUG.Println(STR, "OrderedMemoryStore del: message", mid, "was deleted")
+		store.logger.Debug("OrderedMemoryStore del: message was deleted", slog.Uint64("messageID", uint64(mid)), componentAttr(STR))
 	}
 }
 
@@ -149,11 +175,13 @@ func (store *OrderedMemoryStore) Close() {
 	store.Lock()
 	defer store.Unlock()
 	if !store.opened {
-		store.logger.Error().Println(STR, "Trying to close memory store, but not open")
+		ERROR.Println(STR, "Trying to close memory store, but not open")
+		store.logger.Error("Trying to close memory store, but not open", componentAttr(STR))
 		return
 	}
 	store.opened = false
-	store.logger.Debug().Println(STR, "OrderedMemoryStore closed")
+	DEBUG.Println(STR, "OrderedMemoryStore closed")
+	store.logger.Debug("OrderedMemoryStore closed", componentAttr(STR))
 }
 
 // Reset eliminates all persisted message data in the store.
@@ -161,8 +189,10 @@ func (store *OrderedMemoryStore) Reset() {
 	store.Lock()
 	defer store.Unlock()
 	if !store.opened {
-		store.logger.Error().Println(STR, "Trying to reset memory store, but not open")
+		ERROR.Println(STR, "Trying to reset memory store, but not open")
+		store.logger.Error("Trying to reset memory store, but not open", componentAttr(STR))
 	}
 	store.messages = make(map[string]storedMessage)
-	store.logger.Warn().Println(STR, "OrderedMemoryStore wiped")
+	WARN.Println(STR, "OrderedMemoryStore wiped")
+	store.logger.Warn("OrderedMemoryStore wiped", componentAttr(STR))
 }

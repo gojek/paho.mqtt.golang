@@ -19,15 +19,17 @@
 package mqtt
 
 import (
+	"io"
+	"log/slog"
 	"testing"
 
 	"github.com/eclipse/paho.mqtt.golang/packets"
 )
 
-var logger ClientLogger
+var logger *slog.Logger
 
 func init() {
-	logger = NewClientLogger("test", nil, nil, nil, nil)
+	logger = slog.New(slog.NewTextHandler(io.Discard, nil))
 }
 
 func Test_fullpath(t *testing.T) {

@@ -21,6 +21,7 @@ package mqtt
 
 import (
 	"fmt"
+	"log/slog"
 	"sync"
 	"time"
 )
@@ -36,7 +37,7 @@ type messageIds struct {
 
 	lastIssuedID uint16 // The most recently issued ID. Used so we cycle through ids rather than immediately reusing them (can make debugging easier)
 
-	logger ClientLogger
+	logger slog.Logger
 }
 
 const (
@@ -62,7 +63,8 @@ func (mids *messageIds) cleanUp() {
 	}
 	mids.index = make(map[uint16]tokenCompletor)
 	mids.mu.Unlock()
-	mids.logger.Debug().Println(MID, "cleaned up")
+	DEBUG.Println(MID, "cleaned up")
+	mids.logger.Debug("cleaned up", componentAttr(MID))
 }
 
 // cleanUpSubscribe removes all SUBSCRIBE and UNSUBSCRIBE tokens (setting error)
@@ -80,7 +82,8 @@ func (mids *messageIds) cleanUpSubscribe() {
 		}
 	}
 	mids.mu.Unlock()
-	mids.logger.Debug().Println(MID, "cleaned up subs")
+	DEBUG.Println(MID, "cleaned up subs")
+	mids.logger.Debug("cleaned up subs", componentAttr(MID))
 }
 
 func (mids *messageIds) freeID(id uint16) {
@@ -134,12 +137,12 @@ func (mids *messageIds) getToken(id uint16) tokenCompletor {
 	if token, ok := mids.index[id]; ok {
 		return token
 	}
-	return &DummyToken{id: id, logger: mids.logger}
+	return &DummyToken{id: id, logger: &mids.logger}
 }
 
 type DummyToken struct {
 	id     uint16
-	logger ClientLogger
+	logger *slog.Logger
 }
 
 // Wait implements the Token Wait method.
@@ -160,7 +163,8 @@ func (d *DummyToken) Done() <-chan struct{} {
 }
 
 func (d *DummyToken) flowComplete() {
-	d.logger.Error().Printf("A lookup for token %d returned nil\n", d.id)
+	ERROR.Printf("A lookup for token %d returned nil\n", d.id)
+	d.logger.Error(fmt.Sprintf("A lookup for token %d returned nil\n", d.id))
 }
 
 func (d *DummyToken) Error() error {
