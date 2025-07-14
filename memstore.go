@@ -19,7 +19,6 @@
 package mqtt
 
 import (
-	"io"
 	"log/slog"
 	"sync"
 
@@ -43,9 +42,7 @@ func NewMemoryStore() *MemoryStore {
 	store := &MemoryStore{
 		messages: make(map[string]packets.ControlPacket),
 		opened:   false,
-		logger: slog.New(slog.NewJSONHandler(io.Discard, &slog.HandlerOptions{
-			Level: slog.LevelInfo,
-		})),
+		logger:   noopStructuredLogger,
 	}
 	return store
 }

@@ -165,9 +165,14 @@ func NewClient(o *ClientOptions) Client {
 		c.options.ProtocolVersion = 4
 		c.options.protocolVersionExplicit = false
 	}
-	c.logger = slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
-		Level: o.LogVerbosity.toSlogLevel(),
-	})).With(slog.String("clientID", c.options.ClientID))
+	if o.LogVerbosity == LogLevelDefault {
+		c.logger = noopStructuredLogger
+	} else {
+		c.logger = slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
+			Level: o.LogVerbosity.toSlogLevel(),
+		})).With(slog.String("clientID", c.options.ClientID))
+	}
+
 	if c.options.Store == nil {
 		c.options.Store = NewMemoryStore()
 	}

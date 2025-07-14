@@ -20,7 +20,6 @@
 package mqtt
 
 import (
-	"io"
 	"log/slog"
 	"sort"
 	"sync"
@@ -56,9 +55,7 @@ func NewOrderedMemoryStore() *OrderedMemoryStore {
 	store := &OrderedMemoryStore{
 		messages: make(map[string]storedMessage),
 		opened:   false,
-		logger: slog.New(slog.NewJSONHandler(io.Discard, &slog.HandlerOptions{
-			Level: slog.LevelInfo,
-		})),
+		logger:   noopStructuredLogger,
 	}
 	return store
 }

@@ -19,7 +19,6 @@
 package mqtt
 
 import (
-	"io"
 	"io/fs"
 	"log/slog"
 	"os"
@@ -54,9 +53,7 @@ func NewFileStore(directory string) *FileStore {
 	store := &FileStore{
 		directory: directory,
 		opened:    false,
-		logger: slog.New(slog.NewJSONHandler(io.Discard, &slog.HandlerOptions{
-			Level: slog.LevelInfo,
-		})),
+		logger:    noopStructuredLogger,
 	}
 	return store
 }
