@@ -53,18 +53,21 @@ func NewFileStore(directory string) *FileStore {
 	store := &FileStore{
 		directory: directory,
 		opened:    false,
-		logger:    noopStructuredLogger,
+		logger:    noopSLogger,
 	}
 	return store
 }
 
 // NewFileStoreEx will create a new FileStore which stores its messages in the
 // directory provided, using the provided logger.
-func NewFileStoreEx(directory string, logger slog.Logger) *FileStore {
+func NewFileStoreEx(directory string, logger *slog.Logger) *FileStore {
+	if logger == nil {
+		logger = noopSLogger
+	}
 	store := &FileStore{
 		directory: directory,
 		opened:    false,
-		logger:    &logger,
+		logger:    logger,
 	}
 	return store
 }

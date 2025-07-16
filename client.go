@@ -166,7 +166,7 @@ func NewClient(o *ClientOptions) Client {
 		c.options.protocolVersionExplicit = false
 	}
 	if o.LogVerbosity == LogLevelDefault {
-		c.logger = noopStructuredLogger
+		c.logger = noopSLogger
 	} else {
 		c.logger = slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
 			Level: o.LogVerbosity.toSlogLevel(),
@@ -177,7 +177,7 @@ func NewClient(o *ClientOptions) Client {
 		c.options.Store = NewMemoryStore()
 	}
 	c.persist = c.options.Store
-	c.messageIds = messageIds{index: make(map[uint16]tokenCompletor), logger: *c.logger}
+	c.messageIds = messageIds{index: make(map[uint16]tokenCompletor), logger: c.logger}
 	c.msgRouter = newRouter(c.logger)
 	c.msgRouter.setDefaultHandler(c.options.DefaultPublishHandler)
 	c.obound = make(chan *PacketAndToken)

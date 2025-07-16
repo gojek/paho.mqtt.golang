@@ -42,17 +42,20 @@ func NewMemoryStore() *MemoryStore {
 	store := &MemoryStore{
 		messages: make(map[string]packets.ControlPacket),
 		opened:   false,
-		logger:   noopStructuredLogger,
+		logger:   noopSLogger,
 	}
 	return store
 }
 
 // NewMemoryStoreEx returns a pointer to a new instance of MemoryStore with a custom logger.
-func NewMemoryStoreEx(logger slog.Logger) *MemoryStore {
+func NewMemoryStoreEx(logger *slog.Logger) *MemoryStore {
+	if logger == nil {
+		logger = noopSLogger
+	}
 	store := &MemoryStore{
 		messages: make(map[string]packets.ControlPacket),
 		opened:   false,
-		logger:   &logger,
+		logger:   logger,
 	}
 	return store
 }

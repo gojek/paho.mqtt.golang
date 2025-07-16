@@ -55,7 +55,7 @@ func NewOrderedMemoryStore() *OrderedMemoryStore {
 	store := &OrderedMemoryStore{
 		messages: make(map[string]storedMessage),
 		opened:   false,
-		logger:   noopStructuredLogger,
+		logger:   noopSLogger,
 	}
 	return store
 }
@@ -64,11 +64,14 @@ func NewOrderedMemoryStore() *OrderedMemoryStore {
 // OrderedMemoryStore, the instance is not initialized and ready to
 // use until Open() has been called on it. The logger provided will be used
 // to log messages from the store.
-func NewOrderedMemoryStoreEx(logger slog.Logger) *OrderedMemoryStore {
+func NewOrderedMemoryStoreEx(logger *slog.Logger) *OrderedMemoryStore {
+	if logger == nil {
+		logger = noopSLogger
+	}
 	store := &OrderedMemoryStore{
 		messages: make(map[string]storedMessage),
 		opened:   false,
-		logger:   &logger,
+		logger:   logger,
 	}
 	return store
 }

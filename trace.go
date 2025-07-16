@@ -48,7 +48,7 @@ var (
 	DEBUG    Logger = NOOPLogger{}
 )
 
-var noopStructuredLogger = slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{}))
+var noopSLogger = slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{}))
 
 type LogLevel int
 

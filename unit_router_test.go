@@ -26,7 +26,7 @@ import (
 )
 
 func Test_newRouter(t *testing.T) {
-	testLogger := noopStructuredLogger
+	testLogger := noopSLogger
 	router := newRouter(testLogger)
 	if router == nil {
 		t.Fatalf("router is nil")
@@ -37,7 +37,7 @@ func Test_newRouter(t *testing.T) {
 }
 
 func Test_AddRoute(t *testing.T) {
-	testLogger := noopStructuredLogger
+	testLogger := noopSLogger
 	router := newRouter(testLogger)
 	cb := func(client Client, msg Message) {
 	}
@@ -49,7 +49,7 @@ func Test_AddRoute(t *testing.T) {
 }
 
 func Test_AddRoute_Wildcards(t *testing.T) {
-	testLogger := noopStructuredLogger
+	testLogger := noopSLogger
 	router := newRouter(testLogger)
 	cb := func(client Client, msg Message) {
 	}
@@ -62,7 +62,7 @@ func Test_AddRoute_Wildcards(t *testing.T) {
 }
 
 func Test_DeleteRoute_Wildcards(t *testing.T) {
-	testLogger := noopStructuredLogger
+	testLogger := noopSLogger
 	router := newRouter(testLogger)
 	cb := func(client Client, msg Message) {
 	}
@@ -78,7 +78,7 @@ func Test_DeleteRoute_Wildcards(t *testing.T) {
 }
 
 func Test_Match(t *testing.T) {
-	testLogger := noopStructuredLogger
+	testLogger := noopSLogger
 	router := newRouter(testLogger)
 	router.addRoute("/alpha", nil)
 
@@ -300,7 +300,7 @@ func Test_MatchAndDispatch(t *testing.T) {
 
 	msgs := make(chan *packets.PublishPacket)
 
-	testLogger := noopStructuredLogger
+	testLogger := noopSLogger
 	router := newRouter(testLogger)
 	router.addRoute("a", cb)
 
@@ -337,7 +337,7 @@ func Test_SharedSubscription_MatchAndDispatch(t *testing.T) {
 
 	msgs := make(chan *packets.PublishPacket)
 
-	testLogger := noopStructuredLogger
+	testLogger := noopSLogger
 	router := newRouter(testLogger)
 	router.addRoute("$share/az1/a", cb)
 
