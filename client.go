@@ -283,7 +283,7 @@ func (c *client) Connect() Token {
 		if err != nil {
 			if c.options.ConnectRetry {
 				DEBUG.Println(CLI, "Connect failed, sleeping for", int(c.options.ConnectRetryInterval.Seconds()), "seconds and will then retry, error:", err.Error())
-				c.logger.Debug("Retrying connection",
+				c.logger.Debug("Connect failed, sleeping for retry_interval and will then retry",
 					slog.Int("retry_interval_sec", int(c.options.ConnectRetryInterval.Seconds())),
 					slog.String("error", err.Error()),
 					componentAttr(CLI),
