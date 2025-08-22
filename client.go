@@ -122,9 +122,10 @@ type Client interface {
 // clients are safe for concurrent use by multiple
 // goroutines
 type client struct {
-	lastSent        atomic.Value // time.Time - the last time a packet was successfully sent to network
-	lastReceived    atomic.Value // time.Time - the last time a packet was successfully received from network
-	pingOutstanding int32        // set to 1 if a ping has been sent but response not ret received
+	lastSent                    atomic.Value // time.Time - the last time a packet was successfully sent to network
+	lastReceived                atomic.Value // time.Time - the last time a packet was successfully received from network
+	pingOutstanding             int32        // set to 1 if a ping has been sent but response not ret received
+	fastReconnectCheckStartTime atomic.Value // time.Time - the start time of the fast reconnect check for watchdog
 
 	status connectionStatus // see constants in status.go for values
 
@@ -176,6 +177,7 @@ func NewClient(o *ClientOptions) Client {
 	if c.options.Store == nil {
 		c.options.Store = NewMemoryStore()
 	}
+	c.fastReconnectCheckStartTime.Store(time.Now())
 	c.persist = c.options.Store
 	c.messageIds = messageIds{index: make(map[uint16]tokenCompletor), logger: c.logger}
 	c.msgRouter = newRouter(c.logger)
@@ -669,6 +671,11 @@ func (c *client) startCommsWorkers(conn net.Conn, connectionUp connCompletedFn, 
 		go keepalive(c, conn)
 	}
 
+	if c.options.AckTimeout != 0 {
+		c.workers.Add(1)
+		go ackWatchdog(c, c.options.AckTimeout)
+	}
+
 	// matchAndDispatch will process messages received from the network. It may generate acknowledgements
 	// It will complete when incomingPubChan is closed and will close ackOut prior to exiting
 	incomingPubChan := make(chan *packets.PublishPacket)
@@ -883,6 +890,11 @@ func (c *client) Publish(topic string, qos byte, retained bool, payload interfac
 	default:
 		DEBUG.Println(CLI, "sending publish message, topic:", topic)
 		c.logger.Debug("sending publish message", slog.String("topic", topic), componentAttr(CLI))
+
+		if pub.Qos > 0 {
+			c.checkAndSetFastReconnectCheckStartTime()
+		}
+
 		publishWaitTimeout := c.options.WriteTimeout
 		if publishWaitTimeout == 0 {
 			publishWaitTimeout = time.Second * 30
@@ -983,6 +995,7 @@ func (c *client) Subscribe(topic string, qos byte, callback MessageHandler) Toke
 		}
 		select {
 		case c.oboundP <- &PacketAndToken{p: sub, t: token}:
+			c.checkAndSetFastReconnectCheckStartTime()
 		case <-time.After(subscribeWaitTimeout):
 			token.setError(errors.New("subscribe was broken by timeout"))
 		}
@@ -1065,6 +1078,7 @@ func (c *client) SubscribeMultiple(filters map[string]byte, callback MessageHand
 		}
 		select {
 		case c.oboundP <- &PacketAndToken{p: sub, t: token}:
+			c.checkAndSetFastReconnectCheckStartTime()
 		case <-time.After(subscribeWaitTimeout):
 			token.setError(errors.New("subscribe was broken by timeout"))
 		}
@@ -1311,6 +1325,7 @@ func (c *client) Unsubscribe(topics ...string) Token {
 		}
 		select {
 		case c.oboundP <- &PacketAndToken{p: unsub, t: token}:
+			c.checkAndSetFastReconnectCheckStartTime()
 			for _, topic := range topics {
 				c.msgRouter.deleteRoute(topic)
 			}
@@ -1370,4 +1385,24 @@ func (c *client) persistInbound(m packets.ControlPacket) {
 // pingRespReceived will be called by the network routines when a ping response is received
 func (c *client) pingRespReceived() {
 	atomic.StoreInt32(&c.pingOutstanding, 0)
+}
+
+// checkAndSetFastReconnectCheckStartTime will be called whenever a packet is sent to check the broker's connection status
+func (c *client) checkAndSetFastReconnectCheckStartTime() {
+	fastReconnect := c.fastReconnectCheckStartTime.Load()
+	lastReceived := c.lastReceived.Load()
+
+	var fastReconnectTime, lastReceivedTime time.Time
+	if fastReconnect != nil {
+		fastReconnectTime = fastReconnect.(time.Time)
+	}
+	if lastReceived != nil {
+		lastReceivedTime = lastReceived.(time.Time)
+	}
+
+	if !fastReconnectTime.After(lastReceivedTime) {
+		c.fastReconnectCheckStartTime.Store(time.Now())
+		DEBUG.Println(CLI, "fastReconnectCheckStartTime set", c.fastReconnectCheckStartTime.Load().(time.Time).String())
+		c.logger.Debug("fastReconnectCheckStartTime set", slog.String("time", c.fastReconnectCheckStartTime.Load().(time.Time).String()), componentAttr(CLI))
+	}
 }

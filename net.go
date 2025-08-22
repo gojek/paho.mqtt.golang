@@ -393,6 +393,12 @@ func startOutgoingComms(conn net.Conn,
 				}
 				DEBUG.Println(NET, "obound from incoming msg to write, type", reflect.TypeOf(msg.p), " ID ", msg.p.Details().MessageID)
 				logger.Debug("obound from incoming msg to write", slog.String("type", reflect.TypeOf(msg.p).String()), slog.Uint64("messageID", uint64(msg.p.Details().MessageID)), componentAttr(NET))
+
+				switch msg.p.(type) {
+				case *packets.PubrelPacket:
+					c.checkAndSetFastReconnectCheckStartTime()
+				}
+
 				if err := msg.p.Write(conn); err != nil {
 					ERROR.Println(NET, "outgoing oboundFromIncoming reporting error", err)
 					logger.Error("outgoing oboundFromIncoming reporting error", slog.String("error", err.Error()), componentAttr(NET))
@@ -419,6 +425,7 @@ type commsFns interface {
 	persistOutbound(m packets.ControlPacket) // add the packet to the outbound store
 	persistInbound(m packets.ControlPacket)  // add the packet to the inbound store
 	pingRespReceived()                       // Called when a ping response is received
+	checkAndSetFastReconnectCheckStartTime() // Called when a packet that expects a response is sent
 }
 
 // startComms initiates goroutines that handles communications over the network connection
