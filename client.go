@@ -1389,16 +1389,8 @@ func (c *client) pingRespReceived() {
 
 // checkAndSetFastReconnectCheckStartTime will be called whenever a packet is sent to check the broker's connection status
 func (c *client) checkAndSetFastReconnectCheckStartTime() {
-	fastReconnect := c.fastReconnectCheckStartTime.Load()
-	lastReceived := c.lastReceived.Load()
-
-	var fastReconnectTime, lastReceivedTime time.Time
-	if fastReconnect != nil {
-		fastReconnectTime = fastReconnect.(time.Time)
-	}
-	if lastReceived != nil {
-		lastReceivedTime = lastReceived.(time.Time)
-	}
+	fastReconnectTime := c.fastReconnectCheckStartTime.Load().(time.Time)
+	lastReceivedTime := c.lastReceived.Load().(time.Time)
 
 	if !fastReconnectTime.After(lastReceivedTime) {
 		c.fastReconnectCheckStartTime.Store(time.Now())
