@@ -153,7 +153,7 @@ func NewClientOptions() *ClientOptions {
 		CustomOpenConnectionFn:  nil,
 		AutoAckDisabled:         false,
 		LogVerbosity:            LogLevelDefault,
-		AckTimeout:              5 * time.Second,
+		AckTimeout:              0,
 	}
 	return o
 }
