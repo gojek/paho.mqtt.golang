@@ -891,10 +891,6 @@ func (c *client) Publish(topic string, qos byte, retained bool, payload interfac
 		DEBUG.Println(CLI, "sending publish message, topic:", topic)
 		c.logger.Debug("sending publish message", slog.String("topic", topic), componentAttr(CLI))
 
-		if pub.Qos > 0 {
-			c.checkAndSetFastReconnectCheckStartTime()
-		}
-
 		publishWaitTimeout := c.options.WriteTimeout
 		if publishWaitTimeout == 0 {
 			publishWaitTimeout = time.Second * 30
@@ -995,7 +991,6 @@ func (c *client) Subscribe(topic string, qos byte, callback MessageHandler) Toke
 		}
 		select {
 		case c.oboundP <- &PacketAndToken{p: sub, t: token}:
-			c.checkAndSetFastReconnectCheckStartTime()
 		case <-time.After(subscribeWaitTimeout):
 			token.setError(errors.New("subscribe was broken by timeout"))
 		}
@@ -1078,7 +1073,6 @@ func (c *client) SubscribeMultiple(filters map[string]byte, callback MessageHand
 		}
 		select {
 		case c.oboundP <- &PacketAndToken{p: sub, t: token}:
-			c.checkAndSetFastReconnectCheckStartTime()
 		case <-time.After(subscribeWaitTimeout):
 			token.setError(errors.New("subscribe was broken by timeout"))
 		}
@@ -1325,7 +1319,6 @@ func (c *client) Unsubscribe(topics ...string) Token {
 		}
 		select {
 		case c.oboundP <- &PacketAndToken{p: unsub, t: token}:
-			c.checkAndSetFastReconnectCheckStartTime()
 			for _, topic := range topics {
 				c.msgRouter.deleteRoute(topic)
 			}
