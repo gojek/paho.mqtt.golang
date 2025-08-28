@@ -663,10 +663,14 @@ func (c *client) startCommsWorkers(conn net.Conn, connectionUp connCompletedFn, 
 	c.conn = conn // Store the connection
 
 	c.stop = make(chan struct{})
-	if c.options.KeepAlive != 0 {
-		atomic.StoreInt32(&c.pingOutstanding, 0)
+
+	if c.options.KeepAlive != 0 || c.options.AckTimeout != 0 {
 		c.lastReceived.Store(time.Now())
 		c.lastSent.Store(time.Now())
+	}
+
+	if c.options.KeepAlive != 0 {
+		atomic.StoreInt32(&c.pingOutstanding, 0)
 		c.workers.Add(1)
 		go keepalive(c, conn)
 	}
