@@ -22,7 +22,7 @@ import (
 	"net/url"
 	"sync"
 
-	"github.com/eclipse/paho.mqtt.golang/packets"
+	"github.com/gojek/paho.mqtt.golang/packets"
 )
 
 // Message defines the externals that a message implementation must support
