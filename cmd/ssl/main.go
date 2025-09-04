@@ -51,7 +51,7 @@ import (
 	"os"
 	"time"
 
-	MQTT "github.com/eclipse/paho.mqtt.golang"
+	MQTT "github.com/gojek/paho.mqtt.golang"
 )
 
 func NewTLSConfig() *tls.Config {

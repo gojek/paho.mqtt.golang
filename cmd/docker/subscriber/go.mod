@@ -2,7 +2,10 @@ module subscriber
 
 go 1.23
 
-require github.com/eclipse/paho.mqtt.golang v1.5.0
+require (
+	github.com/eclipse/paho.mqtt.golang v1.5.0 // indirect
+	github.com/gojek/paho.mqtt.golang v1.6.1
+)
 
 require (
 	github.com/gorilla/websocket v1.5.3 // indirect
