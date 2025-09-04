@@ -63,6 +63,7 @@ func keepalive(c *client, conn io.Writer) {
 					DEBUG.Println(PNG, "keepalive sending ping")
 					c.logger.Debug("keepalive sending ping", componentAttr(PNG))
 					ping := packets.NewControlPacket(packets.Pingreq).(*packets.PingreqPacket)
+					c.checkAndSetFastReconnectCheckStartTime()
 					// We don't want to wait behind large messages being sent, the `Write` call
 					// will block until it is able to send the packet.
 					atomic.StoreInt32(&c.pingOutstanding, 1)

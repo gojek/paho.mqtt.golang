@@ -356,6 +356,10 @@ func startOutgoingComms(conn net.Conn,
 					}
 				}
 
+				if msg.Qos > 0 {
+					c.checkAndSetFastReconnectCheckStartTime()
+				}
+
 				if msg.Qos == 0 {
 					pub.t.flowComplete()
 				}
@@ -378,6 +382,11 @@ func startOutgoingComms(conn net.Conn,
 					continue
 				}
 
+				switch msg.p.(type) {
+				case *packets.SubscribePacket, *packets.UnsubscribePacket:
+					c.checkAndSetFastReconnectCheckStartTime()
+				}
+
 				if _, ok := msg.p.(*packets.DisconnectPacket); ok {
 					msg.t.(*DisconnectToken).flowComplete()
 					DEBUG.Println(NET, "outbound wrote disconnect, closing connection")
@@ -393,6 +402,7 @@ func startOutgoingComms(conn net.Conn,
 				}
 				DEBUG.Println(NET, "obound from incoming msg to write, type", reflect.TypeOf(msg.p), " ID ", msg.p.Details().MessageID)
 				logger.Debug("obound from incoming msg to write", slog.String("type", reflect.TypeOf(msg.p).String()), slog.Uint64("messageID", uint64(msg.p.Details().MessageID)), componentAttr(NET))
+
 				if err := msg.p.Write(conn); err != nil {
 					ERROR.Println(NET, "outgoing oboundFromIncoming reporting error", err)
 					logger.Error("outgoing oboundFromIncoming reporting error", slog.String("error", err.Error()), componentAttr(NET))
@@ -401,6 +411,11 @@ func startOutgoingComms(conn net.Conn,
 					}
 					errChan <- err
 					continue
+				}
+
+				switch msg.p.(type) {
+				case *packets.PubrelPacket:
+					c.checkAndSetFastReconnectCheckStartTime()
 				}
 			}
 			c.UpdateLastSent() // Record that a packet has been received (for keepalive routine)
@@ -419,6 +434,7 @@ type commsFns interface {
 	persistOutbound(m packets.ControlPacket) // add the packet to the outbound store
 	persistInbound(m packets.ControlPacket)  // add the packet to the inbound store
 	pingRespReceived()                       // Called when a ping response is received
+	checkAndSetFastReconnectCheckStartTime() // Called when a packet that expects a response is sent
 }
 
 // startComms initiates goroutines that handles communications over the network connection

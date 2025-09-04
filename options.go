@@ -106,6 +106,7 @@ type ClientOptions struct {
 	CustomOpenConnectionFn  OpenConnectionFunc
 	AutoAckDisabled         bool
 	LogVerbosity            LogLevel
+	AckTimeout              time.Duration
 }
 
 // NewClientOptions will create a new ClientClientOptions type with some
@@ -152,6 +153,7 @@ func NewClientOptions() *ClientOptions {
 		CustomOpenConnectionFn:  nil,
 		AutoAckDisabled:         false,
 		LogVerbosity:            LogLevelDefault,
+		AckTimeout:              0,
 	}
 	return o
 }
@@ -463,5 +465,10 @@ func (o *ClientOptions) SetAutoAckDisabled(autoAckDisabled bool) *ClientOptions 
 // SetLogLevel sets the log level for the client. This will be used to control the verbosity of the logs
 func (o *ClientOptions) SetLogLevel(logVerbosity LogLevel) *ClientOptions {
 	o.LogVerbosity = logVerbosity
+	return o
+}
+
+func (o *ClientOptions) SetAckTimeout(ackTimeout time.Duration) *ClientOptions {
+	o.AckTimeout = ackTimeout
 	return o
 }
