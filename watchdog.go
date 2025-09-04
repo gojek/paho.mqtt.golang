@@ -28,8 +28,8 @@ func ackWatchdog(c *client, ackTimeout time.Duration) {
 
 			if fastReconnectTimeVal.After(lastReceivedTimeVal) {
 				if time.Since(fastReconnectTimeVal) >= ackTimeout {
-					DEBUG.Println(NET, "ack watchdog timeout detected")
-					c.logger.Debug("ack watchdog timeout detected", componentAttr(NET))
+					ERROR.Println(NET, "ack watchdog timeout detected")
+					c.logger.Error("ack watchdog timeout detected", componentAttr(NET))
 					c.internalConnLost(errors.New("ack watchdog timeout detected"))
 					return
 				}
