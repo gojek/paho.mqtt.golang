@@ -1392,8 +1392,8 @@ func (c *client) checkAndSetFastReconnectCheckStartTime() {
 
 		if !fastReconnectTime.After(lastReceivedTime) {
 			c.fastReconnectCheckStartTime.Store(time.Now())
-			ERROR.Println(CLI, "fastReconnectCheckStartTime set", c.fastReconnectCheckStartTime.Load().(time.Time).String())
-			c.logger.Error("fastReconnectCheckStartTime set", slog.String("time", c.fastReconnectCheckStartTime.Load().(time.Time).String()), componentAttr(CLI))
+			DEBUG.Println(CLI, "fastReconnectCheckStartTime set", c.fastReconnectCheckStartTime.Load().(time.Time).String())
+			c.logger.Debug("fastReconnectCheckStartTime set", slog.String("time", c.fastReconnectCheckStartTime.Load().(time.Time).String()), componentAttr(CLI))
 		}
 	}
 }
