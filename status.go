@@ -21,6 +21,7 @@ package mqtt
 
 import (
 	"errors"
+	"log/slog"
 	"sync"
 )
 
@@ -121,6 +122,8 @@ type connectionStatus struct {
 	// `connecting`). `actionCompleted` will be set whenever we move into one of the above statues and the channel
 	// returned to anything else requesting a status change. The channel will be closed when the operation is complete.
 	actionCompleted chan struct{} // Only valid whilst status is Connecting or Reconnecting; will be closed when connection completed (success or failure)
+
+	logger *slog.Logger
 }
 
 // ConnectionStatus returns the connection status.
@@ -147,9 +150,15 @@ func (c *connectionStatus) Connecting() (connCompletedFn, error) {
 	defer c.Unlock()
 	// Calling Connect when already connecting (or if reconnecting) may not always be considered an error
 	if c.status == connected || c.status == reconnecting {
+		if c.logger != nil {
+			c.logger.Error("Connecting() rejected", slog.String("error", errAlreadyConnectedOrReconnecting.Error()), slog.String("currentStatus", c.status.String()), componentAttr(STA))
+		}
 		return nil, errAlreadyConnectedOrReconnecting
 	}
 	if c.status != disconnected {
+		if c.logger != nil {
+			c.logger.Error("Connecting() rejected", slog.String("error", errStatusMustBeDisconnected.Error()), slog.String("currentStatus", c.status.String()), componentAttr(STA))
+		}
 		return nil, errStatusMustBeDisconnected
 	}
 	c.status = connecting
@@ -169,6 +178,9 @@ func (c *connectionStatus) connected(success bool) error {
 
 	// Status may have moved to disconnecting in the interim (i.e. at users request)
 	if c.status == disconnecting {
+		if c.logger != nil {
+			c.logger.Error("connected() aborted", slog.String("error", errAbortConnection.Error()), slog.String("currentStatus", c.status.String()), componentAttr(STA))
+		}
 		return errAbortConnection
 	}
 	if success {
@@ -245,6 +257,9 @@ func (c *connectionStatus) ConnectionLost(willReconnect bool) (connectionLostHan
 	c.willReconnect = willReconnect
 	prevStatus := c.status
 	c.status = disconnecting
+	if c.logger != nil {
+		c.logger.Error("ConnectionLost() connection lost", slog.String("from", prevStatus.String()), slog.String("to", disconnecting.String()), slog.Bool("willReconnect", willReconnect), componentAttr(STA))
+	}
 
 	// There is a slight possibility that a connection attempt is in progress (connection up and goroutines started but
 	// status not yet changed). By changing the status we ensure that process will exit cleanly
