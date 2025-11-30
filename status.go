@@ -150,18 +150,15 @@ func (c *connectionStatus) Connecting() (connCompletedFn, error) {
 	defer c.Unlock()
 	// Calling Connect when already connecting (or if reconnecting) may not always be considered an error
 	if c.status == connected || c.status == reconnecting {
-		if c.logger != nil {
-			c.logger.Error("Connecting() rejected", slog.String("error", errAlreadyConnectedOrReconnecting.Error()), slog.String("currentStatus", c.status.String()), componentAttr(STA))
-		}
 		return nil, errAlreadyConnectedOrReconnecting
 	}
 	if c.status != disconnected {
-		if c.logger != nil {
-			c.logger.Error("Connecting() rejected", slog.String("error", errStatusMustBeDisconnected.Error()), slog.String("currentStatus", c.status.String()), componentAttr(STA))
-		}
 		return nil, errStatusMustBeDisconnected
 	}
 	c.status = connecting
+	if c.logger != nil {
+		c.logger.Error("Connecting() connection started", slog.String("to", connecting.String()), componentAttr(STA))
+	}
 	c.actionCompleted = make(chan struct{})
 	return c.connected, nil
 }
@@ -178,15 +175,18 @@ func (c *connectionStatus) connected(success bool) error {
 
 	// Status may have moved to disconnecting in the interim (i.e. at users request)
 	if c.status == disconnecting {
-		if c.logger != nil {
-			c.logger.Error("connected() aborted", slog.String("error", errAbortConnection.Error()), slog.String("currentStatus", c.status.String()), componentAttr(STA))
-		}
 		return errAbortConnection
 	}
 	if success {
 		c.status = connected
+		if c.logger != nil {
+			c.logger.Error("connected() connection successful", slog.String("to", connected.String()), componentAttr(STA))
+		}
 	} else {
 		c.status = disconnected
+		if c.logger != nil {
+			c.logger.Error("connected() connection failed", slog.String("to", disconnected.String()), componentAttr(STA))
+		}
 	}
 	return nil
 }
@@ -212,6 +212,9 @@ func (c *connectionStatus) Disconnecting() (disconnectCompletedFn, error) {
 
 	prevStatus := c.status
 	c.status = disconnecting
+	if c.logger != nil {
+		c.logger.Error("Disconnecting() disconnection started", slog.String("from", prevStatus.String()), slog.String("to", disconnecting.String()), componentAttr(STA))
+	}
 
 	// We may need to wait for connection/reconnection process to complete (they should regularly check the status)
 	if prevStatus == connecting || prevStatus == reconnecting {
@@ -234,6 +237,9 @@ func (c *connectionStatus) disconnectionCompleted() {
 	c.Lock()
 	defer c.Unlock()
 	c.status = disconnected
+	if c.logger != nil {
+		c.logger.Error("disconnectionCompleted() disconnection completed", slog.String("to", disconnected.String()), componentAttr(STA))
+	}
 	close(c.actionCompleted) // Alert anything waiting on the connection process to complete
 	c.actionCompleted = nil
 }
@@ -288,6 +294,9 @@ func (c *connectionStatus) getConnectionLostHandler(reconnectRequested bool) con
 		// `Disconnecting()` may have been called while the disconnection was being processed (this makes it permanent!)
 		if !c.willReconnect || !proceed {
 			c.status = disconnected
+			if c.logger != nil {
+				c.logger.Error("getConnectionLostHandler() disconnection completed", slog.String("to", disconnected.String()), componentAttr(STA))
+			}
 			close(c.actionCompleted) // Alert anything waiting on the connection process to complete
 			c.actionCompleted = nil
 			if !reconnectRequested || !proceed {
@@ -297,6 +306,9 @@ func (c *connectionStatus) getConnectionLostHandler(reconnectRequested bool) con
 		}
 
 		c.status = reconnecting
+		if c.logger != nil {
+			c.logger.Error("getConnectionLostHandler() reconnection started", slog.String("to", reconnecting.String()), componentAttr(STA))
+		}
 		return c.connected, nil // Note that c.actionCompleted is still live and will be closed in connected
 	}
 }
@@ -308,4 +320,7 @@ func (c *connectionStatus) forceConnectionStatus(s status) {
 	c.Lock()
 	defer c.Unlock()
 	c.status = s
+	if c.logger != nil {
+		c.logger.Error("forceConnectionStatus() status forced", slog.String("to", s.String()), componentAttr(STA))
+	}
 }
