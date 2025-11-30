@@ -179,6 +179,7 @@ func NewClient(o *ClientOptions) Client {
 	}
 	c.fastReconnectCheckStartTime.Store(time.Now())
 	c.persist = c.options.Store
+	c.status = connectionStatus{logger: c.logger}
 	c.messageIds = messageIds{index: make(map[uint16]tokenCompletor), logger: c.logger}
 	c.msgRouter = newRouter(c.logger)
 	c.msgRouter.setDefaultHandler(c.options.DefaultPublishHandler)
@@ -778,7 +779,7 @@ func (c *client) startCommsWorkers(conn net.Conn, connectionUp connCompletedFn, 
 					continue
 				}
 				ERROR.Println(CLI, "Connect comms goroutine - error triggered", err)
-				c.logger.Error("Connect comms goroutine - error triggered", err.Error(), componentAttr(CLI))
+				c.logger.Error("Connect comms goroutine - error triggered", slog.String("error", err.Error()), componentAttr(CLI))
 				c.internalConnLost(err) // no harm in calling this if the connection is already down (or shutdown is in progress)
 				continue
 			}

@@ -84,7 +84,7 @@ func Test_AdvancedStatusOperations(t *testing.T) {
 	t.Parallel()
 
 	// Aborted connection (i.e. user triggered)
-	s := connectionStatus{}
+	s := connectionStatus{logger: noopSLogger}
 	if s.ConnectionStatus() != disconnected {
 		t.Fatalf("Expected disconnected; got: %v", s.ConnectionStatus())
 	}
@@ -105,7 +105,7 @@ func Test_AdvancedStatusOperations(t *testing.T) {
 	}
 
 	// Connection lost - no reconnection requested
-	s = connectionStatus{status: connected}
+	s = connectionStatus{status: connected, logger: noopSLogger}
 	rf, err := s.ConnectionLost(false)
 	if err != nil {
 		t.Fatalf("Error connecting: %v", err)
@@ -125,7 +125,7 @@ func Test_AdvancedStatusOperations(t *testing.T) {
 	}
 
 	// Aborted reconnection - stage 1 (i.e. user triggered whist disconnect in progress)
-	s = connectionStatus{status: connected}
+	s = connectionStatus{status: connected, logger: noopSLogger}
 	rf, err = s.ConnectionLost(true)
 	if err != nil {
 		t.Fatalf("Error connecting: %v", err)
@@ -145,7 +145,7 @@ func Test_AdvancedStatusOperations(t *testing.T) {
 	}
 
 	// Aborted reconnection - stage 2 (i.e. user triggered whist disconnect in progress)
-	s = connectionStatus{status: connected}
+	s = connectionStatus{status: connected, logger: noopSLogger}
 	rf, err = s.ConnectionLost(true)
 	if err != nil {
 		t.Fatalf("Error connecting: %v", err)
@@ -173,7 +173,7 @@ func Test_AdvancedStatusOperations(t *testing.T) {
 
 func Test_AbortedConnection(t *testing.T) {
 	t.Parallel()
-	s := connectionStatus{}
+	s := connectionStatus{logger: noopSLogger}
 	if s.ConnectionStatus() != disconnected {
 		t.Fatalf("Expected disconnected; got: %v", s.ConnectionStatus())
 	}

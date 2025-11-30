@@ -21,6 +21,7 @@ package mqtt
 
 import (
 	"errors"
+	"log/slog"
 	"sync"
 )
 
@@ -121,6 +122,8 @@ type connectionStatus struct {
 	// `connecting`). `actionCompleted` will be set whenever we move into one of the above statues and the channel
 	// returned to anything else requesting a status change. The channel will be closed when the operation is complete.
 	actionCompleted chan struct{} // Only valid whilst status is Connecting or Reconnecting; will be closed when connection completed (success or failure)
+
+	logger *slog.Logger
 }
 
 // ConnectionStatus returns the connection status.
@@ -153,6 +156,9 @@ func (c *connectionStatus) Connecting() (connCompletedFn, error) {
 		return nil, errStatusMustBeDisconnected
 	}
 	c.status = connecting
+	if c.logger != nil {
+		c.logger.Error("Connecting() connection started", slog.String("to", connecting.String()), componentAttr(STA))
+	}
 	c.actionCompleted = make(chan struct{})
 	return c.connected, nil
 }
@@ -173,8 +179,14 @@ func (c *connectionStatus) connected(success bool) error {
 	}
 	if success {
 		c.status = connected
+		if c.logger != nil {
+			c.logger.Error("connected() connection successful", slog.String("to", connected.String()), componentAttr(STA))
+		}
 	} else {
 		c.status = disconnected
+		if c.logger != nil {
+			c.logger.Error("connected() connection failed", slog.String("to", disconnected.String()), componentAttr(STA))
+		}
 	}
 	return nil
 }
@@ -200,6 +212,9 @@ func (c *connectionStatus) Disconnecting() (disconnectCompletedFn, error) {
 
 	prevStatus := c.status
 	c.status = disconnecting
+	if c.logger != nil {
+		c.logger.Error("Disconnecting() disconnection started", slog.String("from", prevStatus.String()), slog.String("to", disconnecting.String()), componentAttr(STA))
+	}
 
 	// We may need to wait for connection/reconnection process to complete (they should regularly check the status)
 	if prevStatus == connecting || prevStatus == reconnecting {
@@ -222,6 +237,9 @@ func (c *connectionStatus) disconnectionCompleted() {
 	c.Lock()
 	defer c.Unlock()
 	c.status = disconnected
+	if c.logger != nil {
+		c.logger.Error("disconnectionCompleted() disconnection completed", slog.String("to", disconnected.String()), componentAttr(STA))
+	}
 	close(c.actionCompleted) // Alert anything waiting on the connection process to complete
 	c.actionCompleted = nil
 }
@@ -245,6 +263,9 @@ func (c *connectionStatus) ConnectionLost(willReconnect bool) (connectionLostHan
 	c.willReconnect = willReconnect
 	prevStatus := c.status
 	c.status = disconnecting
+	if c.logger != nil {
+		c.logger.Error("ConnectionLost() connection lost", slog.String("from", prevStatus.String()), slog.String("to", disconnecting.String()), slog.Bool("willReconnect", willReconnect), componentAttr(STA))
+	}
 
 	// There is a slight possibility that a connection attempt is in progress (connection up and goroutines started but
 	// status not yet changed). By changing the status we ensure that process will exit cleanly
@@ -273,6 +294,9 @@ func (c *connectionStatus) getConnectionLostHandler(reconnectRequested bool) con
 		// `Disconnecting()` may have been called while the disconnection was being processed (this makes it permanent!)
 		if !c.willReconnect || !proceed {
 			c.status = disconnected
+			if c.logger != nil {
+				c.logger.Error("getConnectionLostHandler() disconnection completed", slog.String("to", disconnected.String()), componentAttr(STA))
+			}
 			close(c.actionCompleted) // Alert anything waiting on the connection process to complete
 			c.actionCompleted = nil
 			if !reconnectRequested || !proceed {
@@ -282,6 +306,9 @@ func (c *connectionStatus) getConnectionLostHandler(reconnectRequested bool) con
 		}
 
 		c.status = reconnecting
+		if c.logger != nil {
+			c.logger.Error("getConnectionLostHandler() reconnection started", slog.String("to", reconnecting.String()), componentAttr(STA))
+		}
 		return c.connected, nil // Note that c.actionCompleted is still live and will be closed in connected
 	}
 }
@@ -293,4 +320,7 @@ func (c *connectionStatus) forceConnectionStatus(s status) {
 	c.Lock()
 	defer c.Unlock()
 	c.status = s
+	if c.logger != nil {
+		c.logger.Error("forceConnectionStatus() status forced", slog.String("to", s.String()), componentAttr(STA))
+	}
 }
